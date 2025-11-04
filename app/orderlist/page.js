@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { fetchOrders, fetchInvoice } from "../services/orderService";
+import { fetchOrders, fetchOrderCount, fetchInvoice } from "../services/orderService";
 import Header from "../components/header";
 import Menu from "../components/menu";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ export default function OrderList() {
     const router = useRouter();
 
     const [orders, setOrders] = useState([]);
+    const [orderStats, setOrderStats] = useState({}); // ✅ added for count data
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [page, setPage] = useState(1);
@@ -16,12 +17,13 @@ export default function OrderList() {
     const [total, setTotal] = useState(0);
     const limit = 10;
 
+    // 🔹 Fetch orders
     useEffect(() => {
         const loadOrders = async () => {
             try {
                 const status = filter === "All" ? "" : filter.toLowerCase();
                 const data = await fetchOrders(page, limit, status);
-                setOrders(data.orders || data.order); // Adjust if API returns differently
+                setOrders(data.orders || data.order || []);
                 setTotal(data.total || data.orderTotal || 0);
             } catch (err) {
                 console.error("❌ Order Load Error:", err.message);
@@ -32,6 +34,19 @@ export default function OrderList() {
         };
         loadOrders();
     }, [page, filter]);
+
+    // 🔹 Fetch Order Count (✅ implemented)
+    useEffect(() => {
+        const loadStats = async () => {
+            try {
+                const stats = await fetchOrderCount();
+                setOrderStats(stats || {});
+            } catch (err) {
+                console.error("❌ fetchOrderCount Error:", err.message);
+            }
+        };
+        loadStats();
+    }, []);
 
     const handleFilterChange = (newFilter) => {
         setFilter(newFilter);
@@ -66,27 +81,43 @@ export default function OrderList() {
                         Order List
                     </h1>
 
-                    {/* Summary Cards */}
+                    {/* ✅ Live Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div className="bg-white shadow rounded-xl p-5 border-l-4 border-green-500">
                             <h3 className="text-sm text-gray-500">Total Orders</h3>
-                            <p className="text-2xl font-semibold text-gray-800">1,240</p>
-                            <span className="text-xs text-green-500">↑ 1.4% Last 7 days</span>
+                            <p className="text-2xl font-semibold text-gray-800">
+                                {orderStats.order_count ?? 0}
+                            </p>
+                            <span className="text-xs text-green-500">
+
+                            </span>
                         </div>
                         <div className="bg-white shadow rounded-xl p-5 border-l-4 border-blue-500">
                             <h3 className="text-sm text-gray-500">New Orders</h3>
-                            <p className="text-2xl font-semibold text-gray-800">240</p>
-                            <span className="text-xs text-green-500">↑ 2.0% Last 7 days</span>
+                            <p className="text-2xl font-semibold text-gray-800">
+                                {orderStats.new_order_count ?? 0}
+                            </p>
+                            <span className="text-xs text-green-500">
+
+                            </span>
                         </div>
                         <div className="bg-white shadow rounded-xl p-5 border-l-4 border-green-600">
                             <h3 className="text-sm text-gray-500">Completed Orders</h3>
-                            <p className="text-2xl font-semibold text-gray-800">960</p>
-                            <span className="text-xs text-green-500">↑ 8.5% Last 7 days</span>
+                            <p className="text-2xl font-semibold text-gray-800">
+                                {orderStats.completed_order_count ?? 0}
+                            </p>
+                            <span className="text-xs text-green-500">
+
+                            </span>
                         </div>
                         <div className="bg-white shadow rounded-xl p-5 border-l-4 border-red-500">
                             <h3 className="text-sm text-gray-500">Canceled Orders</h3>
-                            <p className="text-2xl font-semibold text-gray-800">87</p>
-                            <span className="text-xs text-red-500">↓ 5% Last 7 days</span>
+                            <p className="text-2xl font-semibold text-gray-800">
+                                {orderStats.cancelled_order_count ?? 0}
+                            </p>
+                            <span className="text-xs text-red-500">
+
+                            </span>
                         </div>
                     </div>
 
@@ -107,13 +138,16 @@ export default function OrderList() {
                             ))}
                         </div>
 
-                        {/* <div>
-                            <input
-                                type="text"
-                                placeholder="Search order or report"
-                                className="border px-3 py-2 rounded-lg text-sm w-64 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                            />
-                        </div> */}
+                        {/* Search (optional) */}
+                        {/* 
+  <div>
+    <input
+      type="text"
+      placeholder="Search order or report"
+      className="border px-3 py-2 rounded-lg text-sm w-64 focus:ring-2 focus:ring-green-500 focus:outline-none"
+    />
+  </div> 
+  */}
                     </div>
 
                     {/* Order Table */}
@@ -196,6 +230,8 @@ export default function OrderList() {
                                                 type="button"
                                                 href={`/invoice/${order.id}`}
                                                 target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="hover:text-green-600"
                                             >
                                                 📄
                                             </a>
@@ -206,7 +242,7 @@ export default function OrderList() {
                         </table>
                     </div>
 
-                    {/* ✅ Updated Pagination (Matches Transaction Page) */}
+                    {/* ✅ Pagination */}
                     <div className="flex flex-col items-center mt-10 gap-2">
                         <div className="flex justify-center items-center space-x-2">
                             <button

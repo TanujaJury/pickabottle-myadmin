@@ -9,7 +9,7 @@ import Menu from "../../components/menu";
 
 export const getImageUrl = (path) => {
     if (!path) return "/no-image.png";
-    return `${"http://localhost:8000"}${path}`;
+    return `${"=http://localhost:8888"}${path}`;
 };
 
 export default function OrderDetailsPage() {

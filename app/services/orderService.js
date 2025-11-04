@@ -148,3 +148,21 @@ export const fetchPOS = async ({ page = 1, limit = 10, search = "" }) => {
         throw err;
     }
 };
+export const fetchOrderCount = async () => {
+    try {
+        const res = await api.get("/orders-count"); // ✅ axios-style request
+
+        // API returns: { success, message, data: {...} }
+        if (!res.data?.success) {
+            throw new Error(res.data?.message || "Failed to fetch order count");
+        }
+
+        return res.data.data; // ✅ return the data object directly (order_count, etc.)
+    } catch (err) {
+        if (err?.message === "Session expired") {
+            await logout(); // same pattern as your fetchPOS
+        }
+        console.error("❌ fetchOrderCount error:", err.message);
+        throw err;
+    }
+};
