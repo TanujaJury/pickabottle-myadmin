@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import { fetchInvoice } from "../../services/orderService";
 
-export default function invoice() {
+export default function Invoice() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [invoice, setInvoice] = useState(null);
