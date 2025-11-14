@@ -9,6 +9,7 @@ import {
   CreditCard,
   Package,
   Receipt,
+  Quote,
 } from "lucide-react";
 
 // ✅ JS version of cx (no TypeScript types)
@@ -46,6 +47,16 @@ export default function DashboardHeader() {
       label: "Pos",
       icon: <Receipt className="w-5 h-5" />,
     },
+    {
+      href: "/testimonial",
+      label: "testimonial",
+      icon: <Quote className="w-5 h-5" />,
+    },
+    {
+      href: "/tax",
+      label: "Tax",
+      icon: <Receipt className="w-5 h-5" />,
+    },
   ];
 
   const isActive = (item) =>
@@ -54,11 +65,11 @@ export default function DashboardHeader() {
   return (
     <>
       <Image
-        src="/pickabottle-logo.png"
+        src="/logopickabottle.png"
         alt="Pickabottle"
         width={50}
         height={50}
-        className="mx-auto rounded-full"
+        className="mx-auto rounded-full mt-3"
         priority
       />
       <div className="text-gray-700 ml-7">

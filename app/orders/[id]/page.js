@@ -9,7 +9,7 @@ import Menu from "../../components/menu";
 
 export const getImageUrl = (path) => {
     if (!path) return "/no-image.png";
-    return `${"=http://localhost:8888"}${path}`;
+    return `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${path}`;
 };
 
 export default function OrderDetailsPage() {
@@ -153,8 +153,8 @@ export default function OrderDetailsPage() {
                                             item.selling_price ??
                                             product.productselling_price;
 
-                                        const variantLabel = item.product_varient_id
-                                            ? `Variant #${item.product_varient_id}`
+                                        const variantLabel = variant.quantity
+                                            ? `Variant #${variant.quantity}`
                                             : null;
 
                                         return (

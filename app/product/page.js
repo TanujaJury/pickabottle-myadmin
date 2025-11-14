@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "../components/header";
 import Menu from "../components/menu";
 import { PlusCircle, X } from "lucide-react";
@@ -8,11 +8,19 @@ import {
     createProduct,
     uploadProductImage,
     createVariant,
+    updateProduct,
+    getAdminProduct,
 } from "../services/productService";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useSearchParams, useRouter } from "next/navigation";
+
 
 export default function AddProduct() {
+    const searchParams = useSearchParams();
+    const edit = searchParams.get("edit"); // works with /product?edit=123
+    const router = useRouter();
+
     const [form, setForm] = useState({
         name: "",
         price: "",
@@ -26,8 +34,72 @@ export default function AddProduct() {
     const [images, setImages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [variants, setVariants] = useState([
-        { quantity: "", price: "", selling_price: "", stock: "" },
+        { _id: null, quantity: "", price: "", selling_price: "", stock: "" },
     ]);
+    const didFetch = useRef(false);
+    // ✅ Fetch existing product in edit mode
+    useEffect(() => {
+        if (!edit) return;                 // wait until ?edit=... exists
+        if (didFetch.current) return;      // prevent StrictMode double-call
+        didFetch.current = true;
+
+        fetchProductData(edit);
+    }, [edit]);
+
+    const fetchProductData = async (id) => {
+        try {
+            const data = await getAdminProduct(id); // ✅ no .data
+
+            if (!data) {
+                toast.error("⚠️ Failed to load product details");
+                return;
+            }
+
+            // 🧾 Main form fields
+            setForm({
+                name: data.product_name || "",
+                price: data.product_price || "",
+                selling_price: data.productselling_price || "",
+                stock: data.stock || "",
+                product_ingredients: data.product_indegrents || "",
+                description: data.product_description || "",
+                isActive: data.isActive ?? true,
+            });
+
+            // 🧩 Variants
+            if (data.product_varients && data.product_varients.length > 0) {
+                setVariants(
+                    data.product_varients.map((v) => ({
+                        _id: v.id || null,
+                        quantity: v.quntity || "",
+                        price: v.Price || "",
+                        selling_price: v.selling_price || "",
+                        stock: v.stock || "",
+                    }))
+                );
+            } else {
+                setVariants([{ _id: null, quantity: "", price: "", selling_price: "", stock: "" }]);
+            }
+
+            // 🖼️ Images
+            if (data.product_images && data.product_images.length > 0) {
+                setImages(
+                    data.product_images.map((img) => ({
+                        file: null,
+                        preview: `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${img.file_url}`, // or prepend base URL if needed
+                    }))
+                );
+            } else {
+                setImages([]);
+            }
+
+            toast.info("✏️ Edit mode enabled");
+        } catch (err) {
+            console.error("Error fetching product:", err);
+            toast.error("❌ Error loading product data");
+        }
+    };
+
 
     // ✅ Handle input change
     const handleChange = (e) => {
@@ -52,24 +124,23 @@ export default function AddProduct() {
     // ✅ Variant handlers
     const handleVariantChange = (index, e) => {
         const { name, value } = e.target;
-        const newVariants = [...variants];
-        newVariants[index][name] = value;
-        setVariants(newVariants);
+        const updated = [...variants];
+        updated[index][name] = value;
+        setVariants(updated);
     };
 
     const addVariant = () => {
         setVariants([
             ...variants,
-            { quantity: "", price: "", selling_price: "", stock: "" },
+            { _id: null, quantity: "", price: "", selling_price: "", stock: "" },
         ]);
     };
 
     const removeVariant = (index) => {
-        const updated = variants.filter((_, i) => i !== index);
-        setVariants(updated);
+        setVariants(variants.filter((_, i) => i !== index));
     };
 
-    // ✅ Publish product
+    // ✅ Publish / Update product
     const handlePublish = async () => {
         if (!form.name || !form.price) {
             toast.warn("Please enter product name and price ⚠️");
@@ -88,58 +159,78 @@ export default function AddProduct() {
                 isActive: form.isActive,
             };
 
-            const res = await createProduct(productPayload);
-            if (!res?.success) {
-                toast.error(res?.message || "Failed to create product");
-                setLoading(false);
-                return;
+            let productId = edit || null;
+            let isUpdate = !!edit;
+
+            // 🆕 CREATE PRODUCT (existing logic — untouched)
+            if (!edit) {
+                const res = await createProduct(productPayload);
+                if (!res?.success) {
+                    toast.error(res?.message || "Failed to create product");
+                    setLoading(false);
+                    return;
+                }
+                productId = res?.data?._id || res?.product_id;
+                toast.success("✅ Product created successfully!");
+            } else {
+                // ✏️ UPDATE PRODUCT
+                const res = await updateProduct(productPayload, edit);
+                if (!res?.success) {
+                    toast.error(res?.message || "Failed to update product");
+                    setLoading(false);
+                    return;
+                }
+                toast.success("✅ Product updated successfully!");
             }
 
-            const productId = res?.data?._id || res?.product_id;
-            toast.success("✅ Product created successfully!");
-
-            // 🧩 Create variants
+            // 🧩 Handle Variants
             if (productId && variants.length > 0) {
                 for (const variant of variants) {
-                    if (variant.quantity) {
-                        const payload = {
-                            product_id: productId,
-                            quantity: variant.quantity,
-                            price: Number(variant.price) || 0,
-                            selling_price: Number(variant.selling_price) || 0,
-                            stock: Number(variant.stock) || 0,
-                        };
-                        await createVariant(payload);
-                    }
+                    const payload = {
+                        product_id: productId,
+                        quantity: variant.quantity,
+                        price: Number(variant.price) || 0,
+                        selling_price: Number(variant.selling_price) || 0,
+                        stock: Number(variant.stock) || 0,
+                    };
+                    // You can call updateVariant here if needed,
+                    // or keep just createVariant for simplicity
+                    await createVariant(payload);
                 }
-                toast.success("🧩 Variants added successfully!");
+                toast.success("🧩 Variants saved successfully!");
             }
 
-            // 🖼️ Upload images
+            // 🖼️ Handle Images
             if (productId && images.length > 0) {
                 for (const img of images) {
-                    const formData = new FormData();
-                    formData.append("product_id", productId);
-                    formData.append("file", img.file);
-                    await uploadProductImage(formData);
+                    if (img.file) {
+                        const formData = new FormData();
+                        formData.append("product_id", productId);
+                        formData.append("file", img.file);
+                        await uploadProductImage(formData);
+                    }
                 }
                 toast.success("📸 Images uploaded successfully!");
             }
 
-            // 🔄 Reset form
-            setForm({
-                name: "",
-                price: "",
-                selling_price: "",
-                stock: "",
-                product_ingredients: "",
-                description: "",
-                isActive: true,
-            });
-            setImages([]);
-            setVariants([{ quantity: "", price: "", selling_price: "", stock: "" }]);
+            // Reset form only in create mode
+            if (!isUpdate) {
+                setForm({
+                    name: "",
+                    price: "",
+                    selling_price: "",
+                    stock: "",
+                    product_ingredients: "",
+                    description: "",
+                    isActive: true,
+                });
+                setImages([]);
+                setVariants([
+                    { _id: null, quantity: "", price: "", selling_price: "", stock: "" },
+                ]);
+            }
         } catch (error) {
-            console.error("Error creating product:", error);
+            console.error("Error creating/updating product:", error);
             toast.error("❌ Something went wrong.");
         } finally {
             setLoading(false);
@@ -161,7 +252,7 @@ export default function AddProduct() {
                 <div className="p-6 md:p-10 bg-gray-50 min-h-screen">
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-semibold text-green-900">
-                            Add New Product
+                            {edit ? "Edit Product" : "Add New Product"}
                         </h1>
                         <button
                             onClick={handlePublish}
@@ -171,7 +262,13 @@ export default function AddProduct() {
                                 : "bg-green-800 hover:bg-green-700"
                                 } text-white px-5 py-2 rounded-md text-sm font-medium`}
                         >
-                            {loading ? "Publishing..." : "Publish Product"}
+                            {loading
+                                ? edit
+                                    ? "Updating..."
+                                    : "Publishing..."
+                                : edit
+                                    ? "Update Product"
+                                    : "Publish Product"}
                         </button>
                     </div>
 

@@ -309,7 +309,7 @@ export default function CreateOrder() {
                                             </option>
                                         ))}
                                 </select>
-                                <PlusCircle className="text-green-600 w-6 h-6" />
+
                             </div>
 
                             {/* Selected Products Table */}

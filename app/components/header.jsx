@@ -15,8 +15,8 @@ export default function DashboardHeader() {
 
         {/* Name + email */}
         <div className="text-right">
-          <div className="font-semibold text-gray-900">suresh</div>
-          <div className="text-sm text-gray-500">suresh@villasaa.com</div>
+          <div className="font-semibold text-gray-900">pickabottle</div>
+          <div className="text-sm text-gray-500">Admin@123.com</div>
         </div>
       </div>
     </div>
