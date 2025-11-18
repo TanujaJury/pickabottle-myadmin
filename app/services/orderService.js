@@ -70,7 +70,7 @@ export async function fetchDashboardData() {
         if (error?.message === "Session expired") {
             await logout();
         }
-        console.error("❌ fetchDashboardData error:", error.message);
+        console.log("❌ fetchDashboardData error:", error.message);
         throw error;
     }
 }
@@ -95,7 +95,7 @@ export async function fetchTransactions(page = 1, limit = 10) {
         if (error?.message === "Session expired") {
             await logout();
         }
-        console.error("❌ fetchTransactions error:", error.message);
+        console.log("❌ fetchTransactions error:", error.message);
         throw error;
     }
 }
@@ -127,7 +127,7 @@ export const createPOS = async (data) => {
         if (err?.message === "Session expired") {
             await logout();
         }
-        console.error("Error creating POS:", err);
+        console.log("Error creating POS:", err);
         throw err;
     }
 };
@@ -144,7 +144,7 @@ export const fetchPOS = async ({ page = 1, limit = 10, search = "" }) => {
         if (err?.message === "Session expired") {
             await logout();
         }
-        console.error("Axios Error:", err);
+        console.log("Axios Error:", err);
         throw err;
     }
 };
@@ -162,7 +162,7 @@ export const fetchOrderCount = async () => {
         if (err?.message === "Session expired") {
             await logout(); // same pattern as your fetchPOS
         }
-        console.error("❌ fetchOrderCount error:", err.message);
+        console.log("❌ fetchOrderCount error:", err.message);
         throw err;
     }
 };
